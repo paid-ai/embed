@@ -24,7 +24,7 @@ const jwt = await fetch("/api/paid/mint-token", { method: "POST" }).then((r) =>
 
 renderValueReceipt({
   el: "#paid-vr",
-  baseUrl: "https://app.paid.com",
+  baseUrl: "https://app.paid.ai",
   token: valueReceiptPublicUrlToken, // from your database / Paid webhook
   jwt,
 });
@@ -39,7 +39,7 @@ API and pass its `publicUrlToken` to `renderValueReceipt`:
 ```js
 // server (your backend, with your Paid API key)
 const { data } = await fetch(
-  `${API_BASE}/api/v2/value-receipts?customerId=c_123&limit=1`,
+  `https://api.agentpaid.io/api/v2/value-receipts?customerId=c_123&limit=1`,
   { headers: { Authorization: `Bearer ${PAID_API_KEY}` } },
 ).then((r) => r.json());
 const token = data[0]?.publicUrlToken;
@@ -47,7 +47,7 @@ const token = data[0]?.publicUrlToken;
 // browser
 renderValueReceipt({
   el: "#paid-vr",
-  baseUrl: "https://app.paid.com",
+  baseUrl: "https://app.paid.ai",
   token,
   jwt, // customer-scoped, sub=c_123
 });
@@ -56,7 +56,7 @@ renderValueReceipt({
 ## Declarative mode
 
 ```html
-<script src="https://cdn.paid.com/paid-embed.iife.js"></script>
+<script src="https://unpkg.com/@paid-ai/embed/dist/index.global.js"></script>
 <div
   data-paid-embed
   data-kind="value-receipt"
@@ -64,7 +64,7 @@ renderValueReceipt({
   data-jwt="<jwt>"
 ></div>
 <script>
-  PaidEmbed.mountDeclarative("https://app.paid.com");
+  PaidEmbed.mountDeclarative("https://app.paid.ai");
 </script>
 ```
 
@@ -78,6 +78,10 @@ Fallback: `tokenTransport: "url"`. The JWT is appended as `?token=` on the
 iframe src. Use only when you control neither the iframe nor its parent
 scripting environment (e.g. plain HTML emails — though even there, direct
 share URLs work equally well).
+
+## Example app
+
+See [`@paid-ai/embed-example`](https://github.com/paid-ai/embed-example) for a full working integration with JWT minting, embed rendering, and share-auth flows.
 
 ## License
 
