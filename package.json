@@ -1,0 +1,46 @@
+{
+  "name": "@paid-ai/embed",
+  "version": "0.1.0",
+  "description": "Browser SDK for embedding publicly-shareable Paid resources (value receipts today; invoices + customer portal later).",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "tsup"
+  },
+  "keywords": [
+    "paid",
+    "embed",
+    "billing",
+    "value-receipt",
+    "iframe",
+    "sdk"
+  ],
+  "author": "Paid <engineering@paid.ai>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paid-ai/embed.git"
+  },
+  "homepage": "https://github.com/paid-ai/embed#readme",
+  "bugs": {
+    "url": "https://github.com/paid-ai/embed/issues"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0"
+  }
+}
