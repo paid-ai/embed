@@ -1,7 +1,7 @@
 {
   "name": "@paid-ai/embed",
   "version": "0.1.0",
-  "description": "Browser SDK for embedding publicly-shareable Paid resources (value receipts today; invoices + customer portal later).",
+  "description": "Browser SDK for embedding publicly-shareable Paid resources (value receipts, customer portals).",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",

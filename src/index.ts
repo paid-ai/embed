@@ -12,8 +12,7 @@
 //  - The iframe reports its content height via postMessage so the embed
 //    resizes without scrollbars.
 
-export type ResourceKind = "value-receipt";
-// Future: | "invoice" | "customer-portal"
+export type ResourceKind = "value-receipt" | "customer-portal";
 
 export type TokenTransport = "postMessage" | "url";
 
@@ -62,9 +61,10 @@ const PUBLIC_PATHS: Record<ResourceKind, PublicPathConfig> = {
     buildUrl: (base, token, embed) =>
       `${base.replace(/\/$/, "")}/public/value-receipts/${encodeURIComponent(token)}${embed ? "?mode=embed" : ""}`,
   },
-  // Future:
-  // invoice: { buildUrl: (b, t, e) => `${b}/public/invoices/${t}${e ? "?mode=embed" : ""}` },
-  // "customer-portal": { buildUrl: (b, t, e) => `${b}/public/customers/${t}${e ? "?mode=embed" : ""}` },
+  "customer-portal": {
+    buildUrl: (base, token, embed) =>
+      `${base.replace(/\/$/, "")}/public/customers/${encodeURIComponent(token)}${embed ? "?mode=embed" : ""}`,
+  },
 };
 
 function resolveEl(el: HTMLElement | string): HTMLElement {
@@ -214,6 +214,15 @@ export function renderValueReceipt(
   return renderIframe({ ...opts, kind: "value-receipt" });
 }
 
+export interface CustomerPortalRenderOptions
+  extends Omit<RenderOptions, "kind"> {}
+
+export function renderCustomerPortal(
+  opts: CustomerPortalRenderOptions,
+): EmbedHandle {
+  return renderIframe({ ...opts, kind: "customer-portal" });
+}
+
 // ---------------------------------------------------------------------------
 // Declarative mode — <div data-paid-embed data-kind="..." data-token="...">
 //
@@ -237,7 +246,7 @@ export function mountDeclarative(baseUrl: string): EmbedHandle[] {
       );
       return;
     }
-    if (kind !== "value-receipt") {
+    if (!PUBLIC_PATHS[kind]) {
       console.warn(`[paid-embed] kind "${kind}" is not yet supported`);
       return;
     }
