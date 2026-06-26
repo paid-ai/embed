@@ -12,7 +12,7 @@
 //  - The iframe reports its content height via postMessage so the embed
 //    resizes without scrollbars.
 
-export type ResourceKind = "value-receipt";
+export type ResourceKind = "value-receipt" | "custom-view";
 // Future: | "invoice" | "customer-portal"
 
 export type TokenTransport = "postMessage" | "url";
@@ -24,7 +24,7 @@ export interface RenderOptions {
   baseUrl: string;
   /** Kind of resource to render. */
   kind: ResourceKind;
-  /** Resource identifier: for value-receipt, the publicUrlToken. */
+  /** Resource identifier: for value-receipt, the publicUrlToken; for custom-view, the displayId. */
   token: string;
   /** Signed JWT minted server-side. Pass even if the resource is published — harmless. */
   jwt?: string;
@@ -61,6 +61,10 @@ const PUBLIC_PATHS: Record<ResourceKind, PublicPathConfig> = {
   "value-receipt": {
     buildUrl: (base, token, embed) =>
       `${base.replace(/\/$/, "")}/public/value-receipts/${encodeURIComponent(token)}${embed ? "?mode=embed" : ""}`,
+  },
+  "custom-view": {
+    buildUrl: (base, token, embed) =>
+      `${base.replace(/\/$/, "")}/public/views/${encodeURIComponent(token)}${embed ? "?mode=embed" : ""}`,
   },
   // Future:
   // invoice: { buildUrl: (b, t, e) => `${b}/public/invoices/${t}${e ? "?mode=embed" : ""}` },
@@ -214,6 +218,12 @@ export function renderValueReceipt(
   return renderIframe({ ...opts, kind: "value-receipt" });
 }
 
+export interface CustomViewRenderOptions extends Omit<RenderOptions, "kind"> {}
+
+export function renderCustomView(opts: CustomViewRenderOptions): EmbedHandle {
+  return renderIframe({ ...opts, kind: "custom-view" });
+}
+
 // ---------------------------------------------------------------------------
 // Declarative mode — <div data-paid-embed data-kind="..." data-token="...">
 //
@@ -237,7 +247,7 @@ export function mountDeclarative(baseUrl: string): EmbedHandle[] {
       );
       return;
     }
-    if (kind !== "value-receipt") {
+    if (!kind || !(kind in PUBLIC_PATHS)) {
       console.warn(`[paid-embed] kind "${kind}" is not yet supported`);
       return;
     }
