@@ -11,6 +11,12 @@ interface RenderOptions {
     token: string;
     /** Signed JWT minted server-side. Pass even if the resource is published — harmless. */
     jwt?: string;
+    /**
+     * Async source for the JWT. If provided, the SDK calls it for the initial
+     * token and again whenever the token expires (instead of you wiring
+     * onTokenExpired + updateToken). Takes precedence over `jwt`.
+     */
+    getToken?: () => string | Promise<string>;
     /** Transport for delivering the JWT to the iframe. Defaults to postMessage. */
     tokenTransport?: TokenTransport;
     /** Called when the iframe signals it is ready (postMessage handshake mode). */
