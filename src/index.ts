@@ -12,7 +12,7 @@
 //  - The iframe reports its content height via postMessage so the embed
 //    resizes without scrollbars.
 
-export type ResourceKind = "value-receipt" | "custom-view";
+export type ResourceKind = "value-receipt";
 // Future: | "invoice" | "customer-portal"
 
 export type TokenTransport = "postMessage" | "url";
@@ -24,16 +24,10 @@ export interface RenderOptions {
   baseUrl: string;
   /** Kind of resource to render. */
   kind: ResourceKind;
-  /** Resource identifier: for value-receipt, the publicUrlToken; for custom-view, the displayId. */
+  /** Resource identifier: for value-receipt, the publicUrlToken. */
   token: string;
   /** Signed JWT minted server-side. Pass even if the resource is published — harmless. */
   jwt?: string;
-  /**
-   * Async source for the JWT. If provided, the SDK calls it for the initial
-   * token and again whenever the token expires (instead of you wiring
-   * onTokenExpired + updateToken). Takes precedence over `jwt`.
-   */
-  getToken?: () => string | Promise<string>;
   /** Transport for delivering the JWT to the iframe. Defaults to postMessage. */
   tokenTransport?: TokenTransport;
   /** Called when the iframe signals it is ready (postMessage handshake mode). */
@@ -67,10 +61,6 @@ const PUBLIC_PATHS: Record<ResourceKind, PublicPathConfig> = {
   "value-receipt": {
     buildUrl: (base, token, embed) =>
       `${base.replace(/\/$/, "")}/public/value-receipts/${encodeURIComponent(token)}${embed ? "?mode=embed" : ""}`,
-  },
-  "custom-view": {
-    buildUrl: (base, token, embed) =>
-      `${base.replace(/\/$/, "")}/public/views/${encodeURIComponent(token)}${embed ? "?mode=embed" : ""}`,
   },
   // Future:
   // invoice: { buildUrl: (b, t, e) => `${b}/public/invoices/${t}${e ? "?mode=embed" : ""}` },
@@ -139,20 +129,6 @@ function renderIframe(opts: RenderOptions): EmbedHandle {
 
   container.appendChild(iframe);
 
-  async function deliverToken() {
-    try {
-      const token = opts.getToken ? await opts.getToken() : opts.jwt;
-      if (transport === "postMessage" && token) {
-        iframe.contentWindow?.postMessage(
-          { type: "paid-embed:token", token },
-          paidOrigin,
-        );
-      }
-    } catch (err) {
-      opts.onError?.(err instanceof Error ? err : new Error(String(err)));
-    }
-  }
-
   const onMessage = (ev: MessageEvent) => {
     // Only listen to messages from the iframe we just mounted, from the Paid
     // origin. Anything else is not our concern (the page might host multiple
@@ -164,7 +140,12 @@ function renderIframe(opts: RenderOptions): EmbedHandle {
 
     if (data.type === "paid-embed:ready") {
       opts.onReady?.();
-      void deliverToken();
+      if (transport === "postMessage" && opts.jwt) {
+        iframe.contentWindow?.postMessage(
+          { type: "paid-embed:token", token: opts.jwt },
+          paidOrigin,
+        );
+      }
       return;
     }
     if (data.type === "paid-embed:height" && typeof data.px === "number") {
@@ -173,11 +154,10 @@ function renderIframe(opts: RenderOptions): EmbedHandle {
       return;
     }
     if (data.type === "paid-embed:token-expired") {
-      // Prefer getToken if provided. Otherwise fall back to onTokenExpired callback
-      // or the refreshUrl automatic fetch (configured in the org's share auth settings).
-      if (opts.getToken) {
-        void deliverToken();
-      } else if (opts.onTokenExpired) {
+      // If the host provided an onTokenExpired callback, let them handle it.
+      // Otherwise, if the iframe reports a refreshUrl (configured in the org's
+      // share auth settings), automatically fetch a fresh token from it.
+      if (opts.onTokenExpired) {
         opts.onTokenExpired();
       } else if (typeof data.refreshUrl === "string" && data.refreshUrl) {
         fetch(data.refreshUrl, {
@@ -234,12 +214,6 @@ export function renderValueReceipt(
   return renderIframe({ ...opts, kind: "value-receipt" });
 }
 
-export interface CustomViewRenderOptions extends Omit<RenderOptions, "kind"> {}
-
-export function renderCustomView(opts: CustomViewRenderOptions): EmbedHandle {
-  return renderIframe({ ...opts, kind: "custom-view" });
-}
-
 // ---------------------------------------------------------------------------
 // Declarative mode — <div data-paid-embed data-kind="..." data-token="...">
 //
@@ -263,7 +237,7 @@ export function mountDeclarative(baseUrl: string): EmbedHandle[] {
       );
       return;
     }
-    if (!kind || !(kind in PUBLIC_PATHS)) {
+    if (kind !== "value-receipt") {
       console.warn(`[paid-embed] kind "${kind}" is not yet supported`);
       return;
     }
